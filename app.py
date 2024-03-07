@@ -1,3 +1,4 @@
+#importing necessary libraries 
 from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
@@ -19,10 +20,11 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 
 
-# Load your model
+#loading model that is stored in the project folder with name my_trained_model.h5
 model_path = "F:\mlandpy\my_trained_model.h5"
 model = load_model(model_path)
 
+#creating user entity with id,username and password fields 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
@@ -42,18 +44,18 @@ class User(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
+#creating a FlaskForm with username , password , confirm password fields
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
     password = PasswordField('Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Sign Up')
-
+#creating login form for users to login 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
-
+#signup route and storing user details in the database 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     form = RegistrationForm()
@@ -65,7 +67,8 @@ def signup():
         flash(f'Account created for {form.username.data}!', 'success')
         return redirect(url_for('login'))
     return render_template('signup.html', form=form)
-
+    
+#login route and verifying if user is in our database 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -79,6 +82,7 @@ def login():
             flash('Login unsuccessful. Please check your username and password.', 'danger')
     return render_template('login.html', form=form)
 
+#logout route
 @app.route('/logout')
 @login_required
 def logout():
@@ -86,6 +90,8 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('login'))
 
+
+#user dashboard available upon successful login 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
@@ -100,11 +106,11 @@ def dashboard():
             flash('No selected file', 'danger')
             return redirect(request.url)
 
-        # Make predictions using the loaded model
+        
         img = Image.open(file)
         img = img.resize((28, 28))
 
-        # Adjust the size based on your model's input size
+       
 
         if img.mode != 'RGB':
             img = img.convert('RGB')
@@ -112,13 +118,13 @@ def dashboard():
         img_array = np.array(img) / 255.0  # Normalize pixel values
         img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
 
-        # Get predictions
+       
         predictions = model.predict(img_array)
-                # Convert predictions to class names
+                
         digit_class = np.argmax(predictions[0])
         color_class = "Green" if predictions[1] > 0.5 else "Red"  # Assuming 0 is red and 1 is green
 
-        # You can format these class names as needed for your application
+        
 
         return render_template('dashboard.html', username=current_user.username, digit_class=digit_class, color_class=color_class)
 
